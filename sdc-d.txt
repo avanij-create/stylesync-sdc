@@ -1,0 +1,454 @@
+DOCKER COMMANDS – SINGLE-CONTAINER AND MULTI-CONTAINER QUICK REFERENCE
+==========================================================================
+
+This guide covers Docker commands, building and running one container, and
+running multiple containers with Docker Compose. Examples use the Maven Web
+student portal (WAR + Tomcat) discussed in this project.
+
+BASIC DOCKER TERMS
+------------------
+Image
+    A packaged template used to create containers.
+
+Container
+    A running (or stopped) instance of an image.
+
+Dockerfile
+    A text file containing instructions for building a Docker image.
+
+Port mapping
+    Connects a port on your computer to a port inside a container.
+    Example: -p 8080:8080 means host port 8080 maps to container port 8080.
+
+Volume
+    Stores data outside a container's writable layer so it can persist.
+
+Network
+    Allows containers to communicate with one another.
+
+Docker Compose
+    A tool for defining and running multiple related containers from a
+    docker-compose.yml (or compose.yaml) file.
+
+
+1. CHECK DOCKER
+---------------
+docker --version
+    Displays the installed Docker version.
+
+docker info
+    Displays information about the Docker installation and Docker Engine.
+
+docker
+    Shows Docker command help.
+
+NOTE:
+    Docker Desktop or the Docker Engine must be running before most Docker
+    commands can work.
+
+
+2. IMPORTANT SINGLE-CONTAINER COMMANDS
+--------------------------------------
+
+docker images
+    Lists Docker images stored on your computer.
+
+docker ps
+    Lists currently running containers.
+
+docker ps -a
+    Lists all containers, including stopped containers.
+
+docker pull <image-name>
+    Downloads an image from a registry such as Docker Hub.
+    Example: docker pull tomcat:10.1-jdk17-temurin
+
+docker build -t <image-name>:<tag> .
+    Builds an image using the Dockerfile in the current directory.
+    Example: docker build -t student-portal:1.0 .
+
+docker run <image-name>
+    Creates and starts a container from an image.
+
+docker run -d --name <container-name> -p <host-port>:<container-port> <image>
+    Starts a container in the background, gives it a name, and maps ports.
+    Example:
+    docker run -d --name student-portal -p 8080:8080 student-portal:1.0
+
+docker logs <container-name>
+    Displays the container's logs.
+    Example: docker logs student-portal
+
+docker logs -f <container-name>
+    Follows the logs as new output is produced. Press Ctrl+C to stop following.
+
+docker exec -it <container-name> sh
+    Opens a shell inside a running container, if the image includes sh.
+
+docker stop <container-name>
+    Stops a running container.
+
+docker start <container-name>
+    Starts an existing stopped container.
+
+docker restart <container-name>
+    Restarts a container.
+
+docker rm <container-name>
+    Removes a stopped container.
+
+docker rm -f <container-name>
+    Force-removes a container, stopping it first if necessary.
+
+docker rmi <image-name>:<tag>
+    Removes an image. Containers using that image may need to be removed first.
+
+docker inspect <container-name>
+    Displays detailed information about a container.
+
+docker stats
+    Displays live resource usage for running containers.
+
+docker system df
+    Shows Docker disk usage.
+
+
+3. SINGLE-CONTAINER WORKFLOW – MAVEN WEB PROJECT
+------------------------------------------------
+
+The Maven project creates the WAR file. Docker does not compile the Java
+project in this example; it copies the already-built WAR into Tomcat.
+
+Step 1: Build the WAR using Maven, from the project folder:
+    mvn clean package
+
+This creates:
+    target/student-portal.war
+
+Step 2: Dockerfile
+    Create a file named Dockerfile in the project folder:
+
+    FROM tomcat:10.1-jdk17-temurin
+    COPY target/student-portal.war /usr/local/tomcat/webapps/ROOT.war
+    EXPOSE 8080
+    CMD ["catalina.sh", "run"]
+
+What each line does:
+    FROM
+        Uses a Tomcat 10.1 image with Java 17.
+    COPY
+        Copies the built WAR into Tomcat's webapps folder as ROOT.war.
+        ROOT.war makes the application available at the root URL.
+    EXPOSE
+        Documents that the application listens on container port 8080.
+        It does not publish the port to your computer by itself.
+    CMD
+        Starts Tomcat when the container starts.
+
+Step 3: Build the Docker image:
+    docker build -t student-portal:1.0 .
+
+Step 4: Run the container:
+    docker run -d --name student-portal -p 8080:8080 student-portal:1.0
+
+Step 5: Open the application:
+    http://localhost:8080/
+
+Step 6: Check it:
+    docker ps
+    docker logs student-portal
+
+Step 7: Stop and remove it when finished:
+    docker stop student-portal
+    docker rm student-portal
+
+If the name is already in use, remove the old container:
+    docker rm -f student-portal
+
+If you change the application:
+    1. Run mvn clean package again.
+    2. Rebuild the image with docker build.
+    3. Remove the old container.
+    4. Run a new container from the rebuilt image.
+
+
+4. MULTI-CONTAINER DOCKER – DOCKER COMPOSE
+------------------------------------------
+
+Multi-container means running multiple related containers together.
+Docker Compose defines these services in one YAML file.
+
+Example services:
+    student-portal  - Tomcat web application
+    student-db      - PostgreSQL database
+
+IMPORTANT:
+    This example starts a PostgreSQL container, but the sample Student Portal
+    application is not automatically connected to that database. Application
+    database connection code and configuration would also be required.
+
+Example docker-compose.yml:
+
+    services:
+      student-portal:
+        build:
+          context: .
+          dockerfile: Dockerfile
+        image: student-portal:1.0
+        container_name: student-portal
+        ports:
+          - "8080:8080"
+        depends_on:
+          - student-db
+        networks:
+          - student-network
+        restart: unless-stopped
+
+      student-db:
+        image: postgres:16
+        container_name: student-db
+        environment:
+          POSTGRES_DB: studentdb
+          POSTGRES_USER: studentuser
+          POSTGRES_PASSWORD: studentpass123
+        volumes:
+          - student-db-data:/var/lib/postgresql/data
+        ports:
+          - "5432:5432"
+        networks:
+          - student-network
+        restart: unless-stopped
+
+    volumes:
+      student-db-data:
+
+    networks:
+      student-network:
+        driver: bridge
+
+Explanation of important Compose fields:
+    services
+        Lists the containers/services that Compose should run.
+
+    build
+        Builds an image from the Dockerfile and build context.
+
+    image
+        Names the image to build or use.
+
+    container_name
+        Assigns a fixed container name.
+
+    ports
+        Maps a computer (host) port to a container port.
+        "8080:8080" maps host 8080 to container 8080.
+
+    depends_on
+        Controls service startup order. It does not by itself guarantee that
+        the database is ready to accept connections.
+
+    environment
+        Sets environment variables inside the container.
+
+    volumes
+        Keeps database files in persistent storage.
+
+    networks
+        Connects services to a shared Docker network. Services can reach one
+        another using their Compose service names, for example student-db.
+
+    restart
+        Defines when Docker should restart a container automatically.
+
+    driver: bridge
+        Creates a bridge network for the services.
+
+
+5. DOCKER COMPOSE COMMANDS
+-------------------------
+
+docker compose version
+    Displays the installed Docker Compose version.
+
+docker compose config
+    Checks and displays the resolved Compose configuration.
+
+docker compose build
+    Builds or rebuilds images defined in the Compose file.
+
+docker compose up
+    Creates and starts the services in the foreground.
+
+docker compose up -d
+    Creates and starts services in the background (detached mode).
+
+docker compose ps
+    Shows the services and their container status.
+
+docker compose images
+    Lists images used by the Compose project.
+
+docker compose logs
+    Displays logs from all services.
+
+docker compose logs -f
+    Follows logs from all services. Press Ctrl+C to stop following.
+
+docker compose logs student-portal
+    Displays logs for only the student-portal service.
+
+docker compose exec student-portal sh
+    Opens a shell inside the running student-portal container, if sh is present.
+
+docker compose stop
+    Stops the services without removing their containers.
+
+docker compose start
+    Starts previously stopped services.
+
+docker compose restart
+    Restarts the services.
+
+docker compose down
+    Stops and removes the containers and Compose-created network.
+    Named volumes are kept by default.
+
+docker compose down -v
+    Also removes the Compose-managed named volumes. This can permanently
+    delete stored database data. Use carefully.
+
+docker compose pull
+    Downloads the latest configured service images from their registries.
+
+
+6. MULTI-CONTAINER WORKFLOW – STUDENT PORTAL + DATABASE
+-------------------------------------------------------
+
+Make sure the project folder contains:
+    Dockerfile
+    docker-compose.yml
+    pom.xml
+    src/
+
+Step 1: Build the WAR:
+    mvn clean package
+
+Step 2: Start both services:
+    docker compose up -d
+
+Step 3: Check container status:
+    docker compose ps
+
+Step 4: View logs:
+    docker compose logs
+
+Step 5: Open the web application:
+    http://localhost:8080/
+
+Step 6: Stop and remove containers and network:
+    docker compose down
+
+Step 7: If you also want to delete the database volume:
+    docker compose down -v
+
+WARNING:
+    The '-v' option deletes the Compose-managed database volume and its data.
+    Do not use it if you need to keep the database contents.
+
+
+7. SINGLE CONTAINER VS MULTI-CONTAINER
+--------------------------------------
+
+Single-container:
+    - Usually one application/service runs in one container.
+    - Example: Tomcat running the Student Portal WAR.
+    - Built and started with docker build and docker run.
+
+Multi-container:
+    - Multiple related services run in separate containers.
+    - Example: Tomcat application plus PostgreSQL database.
+    - Defined and managed together using Docker Compose.
+    - Containers can communicate over a shared Docker network.
+
+A container should generally focus on one main service. For example, keep the
+web application and database in separate containers.
+
+
+8. COMMON DOCKER ERRORS
+-----------------------
+
+'Cannot connect to the Docker daemon' / Docker Engine unavailable
+    Start Docker Desktop or the Docker Engine, then retry.
+
+'port is already allocated'
+    Another process or container is using that host port. Stop the conflicting
+    process/container or choose a different host port.
+
+'container name is already in use'
+    A container with that name already exists. Check:
+        docker ps -a
+    Remove the old one if it is no longer needed:
+        docker rm -f student-portal
+
+'COPY failed: file not found'
+    Check that the WAR exists at the path in the Dockerfile. Build it first:
+        mvn clean package
+    The docker build context (the final dot in docker build) must include the
+    target folder and WAR file.
+
+'no configuration file provided'
+    Run docker compose from the directory containing docker-compose.yml, or
+    specify the file with -f.
+
+Application does not open at localhost:8080
+    Check:
+        docker ps
+        docker logs student-portal
+    Confirm that the container was started with:
+        -p 8080:8080
+    Check that Tomcat successfully deployed the WAR.
+
+
+9. QUICK REVISION – MOST IMPORTANT COMMANDS
+-------------------------------------------
+
+SINGLE CONTAINER:
+    docker images
+        List images.
+    docker build -t student-portal:1.0 .
+        Build an image.
+    docker run -d --name student-portal -p 8080:8080 student-portal:1.0
+        Run a container in the background and publish port 8080.
+    docker ps
+        List running containers.
+    docker ps -a
+        List all containers.
+    docker logs student-portal
+        View container logs.
+    docker stop student-portal
+        Stop a container.
+    docker rm student-portal
+        Remove a stopped container.
+
+MULTI-CONTAINER:
+    docker compose up -d
+        Start all services in the Compose file.
+    docker compose ps
+        Check service status.
+    docker compose logs
+        View service logs.
+    docker compose stop
+        Stop services.
+    docker compose down
+        Remove containers and the Compose network.
+    docker compose down -v
+        Also remove named volumes and their stored data.
+
+REMEMBER:
+    Dockerfile       = instructions to build an image.
+    Image            = template used to create a container.
+    Container        = running instance of an image.
+    Port mapping     = connects a host port to a container port.
+    Volume           = persistent storage.
+    Network          = communication between containers.
+    Docker Compose   = defines and runs multiple services together.

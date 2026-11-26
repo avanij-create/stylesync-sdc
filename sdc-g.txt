@@ -1,0 +1,244 @@
+GIT COMMANDS – QUICK REFERENCE
+==============================
+
+This file lists commonly used Git commands and explains what each one does.
+Run commands in the terminal from inside your Git project folder, unless noted.
+
+1. CONFIGURE GIT
+----------------
+git --version
+    Checks which version of Git is installed.
+
+git config --global user.name "Your Name"
+    Sets the name Git records as the author of your commits.
+
+git config --global user.email "you@example.com"
+    Sets the email Git records as the author of your commits.
+
+git config --global --list
+    Displays your global Git configuration.
+
+NOTE: Git name and email identify commit authorship. They do not log you in to
+GitHub or fix repository permission/authentication errors.
+
+2. START OR COPY A REPOSITORY
+-----------------------------
+git init
+    Creates a new Git repository in the current folder.
+
+git clone <repository-url>
+    Downloads a remote repository and creates a local working copy.
+    Example: git clone https://github.com/username/repository.git
+
+3. CHECK REPOSITORY STATUS
+--------------------------
+git status
+    Shows which files are untracked, modified, staged, or committed.
+
+git log
+    Shows the commit history.
+
+git log --oneline
+    Shows a compact, one-line list of commits.
+
+git diff
+    Shows changes in tracked files that have not yet been staged.
+
+git diff --staged
+    Shows changes that are staged and ready to commit.
+
+4. STAGE AND SAVE CHANGES
+-------------------------
+git add <filename>
+    Stages one file for the next commit. Example: git add README.md
+
+git add .
+    Stages new and modified files in the current directory and subdirectories.
+    Check 'git status' before committing.
+
+git reset <filename>
+    Unstages a file but keeps its changes in your working folder.
+
+git commit -m "message"
+    Saves staged changes as a commit in the local repository.
+    Example: git commit -m "Add student details class"
+
+git commit -am "message"
+    Stages and commits modifications to already tracked files.
+    It does NOT include new, untracked files.
+
+5. CONNECT TO AND CHECK REMOTE REPOSITORIES
+-------------------------------------------
+git remote -v
+    Lists remote repository names and their URLs.
+
+git remote add origin <repository-url>
+    Connects the local repository to a remote repository named 'origin'.
+
+git remote set-url origin <repository-url>
+    Changes the URL of the remote named 'origin'.
+
+git branch -a
+    Lists local and remote branches.
+
+6. SEND AND RECEIVE CHANGES
+---------------------------
+git push
+    Uploads local commits to the configured remote branch.
+
+git push -u origin main
+    Pushes the local 'main' branch to 'origin' and sets its upstream.
+    After this, plain 'git push' usually works for that branch.
+
+git pull
+    Downloads and integrates changes from the configured upstream branch.
+
+git fetch
+    Downloads remote updates but does not merge them into your current branch.
+
+git pull origin main
+    Pulls changes from the remote repository's 'main' branch.
+
+7. BRANCH COMMANDS
+------------------
+git branch
+    Lists local branches.
+
+git branch <branch-name>
+    Creates a new branch without switching to it.
+
+git switch <branch-name>
+    Switches to an existing branch.
+
+git switch -c <branch-name>
+    Creates a new branch and switches to it.
+
+git merge <branch-name>
+    Merges the named branch into the branch you are currently on.
+
+git branch -d <branch-name>
+    Deletes a local branch if Git considers it safely merged.
+
+8. UNDOING OR DISCARDING CHANGES – USE CAREFULLY
+------------------------------------------------
+git restore <filename>
+    Discards unstaged changes in a tracked file, restoring it to the last
+    committed version. This can permanently remove those edits.
+
+git restore --staged <filename>
+    Removes a file from staging but keeps its working-folder changes.
+
+git revert <commit-id>
+    Creates a new commit that reverses changes introduced by a prior commit.
+    Often safer than rewriting shared history.
+
+git reset --soft HEAD~1
+    Moves the current branch back one commit but keeps changes staged.
+
+git reset --mixed HEAD~1
+    Moves the current branch back one commit and leaves changes unstaged.
+    This is the default reset mode.
+
+git reset --hard HEAD~1
+    Moves the current branch back one commit and discards changes from that
+    commit in the working tree and index. Use only when you are certain.
+
+9. IGNORE FILES
+---------------
+.gitignore
+    A text file listing files/folders Git should ignore when they are
+    untracked, such as build output or IDE files.
+
+Example .gitignore entries:
+    target/
+    *.class
+    .project
+    .classpath
+
+10. COMMON WORKFLOW FOR YOUR MAVEN PROJECT
+------------------------------------------
+git clone <repository-url>
+    Clone the project (only needed once).
+
+cd <project-folder>
+    Move into the project folder.
+
+git status
+    Check the current state.
+
+git pull
+    Get the latest remote changes before starting work.
+
+[Edit your files]
+
+git status
+    Review what changed.
+
+git add .
+    Stage the changes.
+
+git commit -m "Describe your changes"
+    Save a local commit.
+
+git push
+    Upload your commit to GitHub.
+
+11. COMMON PROBLEMS
+-------------------
+'git: command not found' / 'git is not recognized'
+    Git may not be installed or may not be available in the terminal PATH.
+
+'Everything up-to-date'
+    There are no new local commits to push.
+
+'nothing to commit, working tree clean'
+    There are no detected changes to commit.
+
+'Permission denied' / GitHub 403
+    Check that you are signed in with the correct GitHub account and that
+    the account has write access to the repository. Commit name/email settings
+    do not grant repository access.
+
+Merge conflict
+    Git could not automatically combine changes. Open the conflicted files,
+    resolve the conflict markers, then run:
+        git add <resolved-file>
+        git commit
+    Git may provide further instructions depending on the merge operation.
+
+12. IMPORTANT TERMS
+-------------------
+Repository (repo)
+    The project and its history tracked by Git.
+
+Working directory
+    Your current project files.
+
+Staging area
+    The place where you prepare changes for the next commit.
+
+Commit
+    A saved snapshot of staged changes.
+
+Branch
+    A separate line of development.
+
+Remote
+    A copy of the repository hosted elsewhere, such as GitHub.
+
+Clone
+    Download a repository and its history to your computer.
+
+Push
+    Send local commits to a remote repository.
+
+Pull
+    Fetch and integrate remote changes.
+
+Fetch
+    Download remote updates without integrating them.
+
+REMEMBER:
+    git add     = prepare changes
+    git commit  = save changes locally
+    git push    = upload commits to GitHub
